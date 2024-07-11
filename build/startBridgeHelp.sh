@@ -6,11 +6,11 @@ fi
 
 pkill bhelp
 rm bhelp
-rm -rf ./biota-swap
-git clone https://github.com/TanglePay/biota-swap
-cd biota-swap
+rm -rf ./bwrap_help
+git clone https://github.com/iotadex/bwrap_help
+cd bwrap_help
 go build -ldflags "-w -s"
-cp bhelp ../bhelp_main
+cp bhelp ../bhelp
 cd ..
 
 if [ ! -f "./config/smpc_k" ];then
