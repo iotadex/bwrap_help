@@ -16,6 +16,7 @@ import (
 )
 
 var EventUnWrap = crypto.Keccak256Hash([]byte("UnWrap(address,address,bytes32,uint256)"))
+var EventWithdraw = crypto.Keccak256Hash([]byte("Withdraw(address,uint256)"))
 var MethodSend = crypto.Keccak256Hash([]byte("send(bytes32,uint256,address)"))
 var zeroAddress common.Address
 
@@ -28,16 +29,6 @@ type UnwrapOrder struct {
 	Org     string // tag the platform, "IotaBee", "TangleSwap"
 	Error   error
 	Type    int // 0 need to reconnect and 1 only need to record
-}
-
-type HelpOrder struct {
-	TxID      string
-	Signer    string
-	Direction int8
-	Count     uint64
-	Number    *big.Int
-	Error     error
-	Type      int // 0 need to reconnect and 1 only need to record
 }
 
 type EvmToken struct {
@@ -111,6 +102,37 @@ func (ei *EvmToken) SendUnWrap(txid string, amount *big.Int, to string, prv *ecd
 	return signedTx.Hash().Bytes(), nil
 }
 
+func (ei *EvmToken) SendEth(amount *big.Int, to string, prv *ecdsa.PrivateKey) ([]byte, error) {
+	toAddr := common.HexToAddress(to)
+	if bytes.Equal(toAddr[:], zeroAddress[:]) {
+		return nil, fmt.Errorf("to address error. %s", to)
+	}
+
+	nonce, err := ei.client.PendingNonceAt(context.Background(), ei.account)
+	if err != nil {
+		return nil, err
+	}
+
+	gasPrice, err := ei.client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("get SuggestGasPrice error. %v", err)
+	}
+
+	tx := types.NewTransaction(nonce, toAddr, amount, gl.GasLimit, gasPrice, []byte{})
+
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(ei.chainId), prv)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ei.client.SendTransaction(context.Background(), signedTx)
+	if err != nil {
+		return nil, err
+	}
+
+	return signedTx.Hash().Bytes(), nil
+}
+
 func (ei *EvmToken) StartListen(ch chan *UnwrapOrder) {
 	//Set the query filter
 	query := ethereum.FilterQuery{
@@ -142,6 +164,8 @@ func (ei *EvmToken) StartListen(ch chan *UnwrapOrder) {
 		case vLog := <-eventLogChan:
 			if vLog.Topics[0].Hex() == EventUnWrap.Hex() {
 				ei.dealUnWrapEvent(ch, &vLog)
+			} else if vLog.Topics[0].Hex() == EventWithdraw.Hex() {
+				ei.dealWithdrawEvent(ch, &vLog)
 			}
 		}
 	}
@@ -165,6 +189,28 @@ func (ei *EvmToken) dealUnWrapEvent(ch chan *UnwrapOrder, vLog *types.Log) {
 		To:      common.BytesToAddress(vLog.Topics[2][:]).Hex(),
 		Amount:  amount,
 		Org:     "IotaBee",
+	}
+	ch <- order
+}
+
+func (ei *EvmToken) dealWithdrawEvent(ch chan *UnwrapOrder, vLog *types.Log) {
+	errOrder := &UnwrapOrder{Type: 1}
+	tx := vLog.TxHash.Hex()
+	if len(vLog.Data) == 0 {
+		errOrder.Error = fmt.Errorf("unWrap event data is nil. %s, %s, %s", tx, vLog.Address.Hex(), vLog.Topics[1].Hex())
+		ch <- errOrder
+		return
+	}
+	symbol, _, _ := bytes.Cut(vLog.Data[:32], []byte{0})
+	amount := new(big.Int).SetBytes(vLog.Data[32:])
+
+	order := &UnwrapOrder{
+		TxID:    tx,
+		ToToken: string(symbol),
+		From:    common.BytesToAddress(vLog.Topics[1][:]).Hex(),
+		To:      common.BytesToAddress(vLog.Topics[2][:]).Hex(),
+		Amount:  amount,
+		Org:     "native",
 	}
 	ch <- order
 }

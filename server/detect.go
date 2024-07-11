@@ -12,16 +12,27 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func ListenTokens() {
-	contracts := make([]common.Address, 5)
-	contracts[0] = common.HexToAddress("0x7C32097EB6bA75Dc5eF370BEC9019FD09D96ab9d") //ETH
-	contracts[1] = common.HexToAddress("0xa158A39d00C79019A01A6E86c56E96C461334Eb0") //sETH
-	contracts[2] = common.HexToAddress("0x6c2F73072bD9bc9052D99983e36411f48fa6cDf0") //BTC
-	contracts[3] = common.HexToAddress("0x1cDF3F46DbF8Cf099D218cF96A769cea82F75316") //sBTC
-	contracts[4] = common.HexToAddress("0x5dA63f4456A56a0c5Cb0B2104a3610D5CA3d48E8") //sIOTA
+var ethClient *evm.EvmToken
+var btcClient *evm.EvmToken
 
-	//help := common.HexToAddress("")
-	listenUnWrap("0x093B53bA1DF48D1D037e2528a682A14D88Be5c3C", config.Tokens["sETH"].Account)
+func ListenTokens() {
+	contracts := make([]common.Address, 2)
+	contracts[0] = common.HexToAddress("0x7C32097EB6bA75Dc5eF370BEC9019FD09D96ab9d") //ETH
+	contracts[1] = common.HexToAddress("0x6c2F73072bD9bc9052D99983e36411f48fa6cDf0") //BTC
+
+	rpc := config.Tokens["ETH"].NodeRpc
+	wss := config.Tokens["ETH"].NodeWss
+	var err error
+	ethClient, err = evm.NewEvmToken(rpc, wss, "0x7C32097EB6bA75Dc5eF370BEC9019FD09D96ab9d", config.Tokens["ETH"].Account)
+	if err != nil {
+		panic(err)
+	}
+	btcClient, err = evm.NewEvmToken(rpc, wss, "0x6c2F73072bD9bc9052D99983e36411f48fa6cDf0", config.Tokens["ETH"].Account)
+	if err != nil {
+		panic(err)
+	}
+
+	listenUnWrap("0xf98eCe9c7d0f241dA91b9895fbe4ebbc591D1CBe", config.Tokens["sETH"].Account)
 }
 
 func listenUnWrap(addr string, account common.Address) {
@@ -43,7 +54,11 @@ func listenUnWrap(addr string, account common.Address) {
 				}
 			} else {
 				gl.OutLogger.Info("UnWrap Order : %v", *order)
-				dealUnWrapOrder(con, order)
+				if order.Org == "native" {
+					dealWithdrawOrder(con, order)
+				} else {
+					dealUnWrapOrder(order)
+				}
 			}
 		}
 		time.Sleep(time.Second * 5)
@@ -51,7 +66,7 @@ func listenUnWrap(addr string, account common.Address) {
 	}
 }
 
-func dealUnWrapOrder(t1 *evm.EvmToken, order *evm.UnwrapOrder) {
+func dealUnWrapOrder(order *evm.UnwrapOrder) {
 	wo := model.SwapOrder{
 		TxID:      order.TxID,
 		SrcToken:  order.ToToken,
@@ -78,10 +93,36 @@ func dealUnWrapOrder(t1 *evm.EvmToken, order *evm.UnwrapOrder) {
 		return
 	}
 
-	id, err := t1.SendUnWrap(order.TxID, order.Amount, order.To, prv)
+	t := ethClient
+	if order.ToToken != "ETH" {
+		t = btcClient
+	}
+
+	id, err := t.SendUnWrap(order.TxID, order.Amount, order.To, prv)
 	if err != nil {
 		gl.OutLogger.Error("SendUnWrap error. %s, %v", order.TxID, err)
 		return
 	}
 	gl.OutLogger.Info("SendUnWrap. unKnown => %s OK. %s", order.ToToken, hex.EncodeToString(id))
+}
+
+func dealWithdrawOrder(t1 *evm.EvmToken, order *evm.UnwrapOrder) {
+	// Get Private Key
+	_, prv, err := config.GetPrivateKey("ETH")
+	if err != nil {
+		gl.OutLogger.Error("GetPrivateKey error. ETH, %v", err)
+		return
+	}
+
+	t := t1
+	if order.ToToken == "ETH" {
+		t = ethClient
+	}
+
+	id, err := t.SendEth(order.Amount, order.To, prv)
+	if err != nil {
+		gl.OutLogger.Error("Withdraw native error. %s, %v", order.TxID, err)
+		return
+	}
+	gl.OutLogger.Info("Withdraw native %s OK. %s", order.ToToken, hex.EncodeToString(id))
 }
