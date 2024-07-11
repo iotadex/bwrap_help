@@ -16,7 +16,7 @@ import (
 )
 
 var EventUnWrap = crypto.Keccak256Hash([]byte("UnWrap(address,address,bytes32,uint256)"))
-var EventWithdraw = crypto.Keccak256Hash([]byte("Withdraw(address,uint256)"))
+var EventWithdraw = crypto.Keccak256Hash([]byte("Withdraw(address,bytes32,uint256)"))
 var MethodSend = crypto.Keccak256Hash([]byte("send(bytes32,uint256,address)"))
 var zeroAddress common.Address
 
@@ -207,8 +207,8 @@ func (ei *EvmToken) dealWithdrawEvent(ch chan *UnwrapOrder, vLog *types.Log) {
 	order := &UnwrapOrder{
 		TxID:    tx,
 		ToToken: string(symbol),
-		From:    common.BytesToAddress(vLog.Topics[1][:]).Hex(),
-		To:      common.BytesToAddress(vLog.Topics[2][:]).Hex(),
+		From:    ei.account.Hex(),
+		To:      common.BytesToAddress(vLog.Topics[1][:]).Hex(),
 		Amount:  amount,
 		Org:     "native",
 	}

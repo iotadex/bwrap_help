@@ -45,7 +45,7 @@ func listenUnWrap(addr string, account common.Address) {
 	for {
 		orderC := make(chan *evm.UnwrapOrder, 10)
 		go con.StartListen(orderC)
-		gl.OutLogger.Info("Begin to listen bridge help. %s", account.Hex())
+		gl.OutLogger.Info("Begin to listen bridge help. %s", addr)
 		for order := range orderC {
 			if order.Error != nil {
 				gl.OutLogger.Error(order.Error.Error())
