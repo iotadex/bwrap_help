@@ -1,0 +1,131 @@
+# Version
+Version = "1.0.2"
+# PendingTime is time of seconds for a tx keep pending status
+PendingTime = 300
+
+# NodeUrl is the smpc node rpc url
+# Gid is the subgroup id
+# ThresHold is the group rule. It can be "2/3", "3/5", "4/6" ...
+# KeyStore is the wallet account of the node of smpc
+[Smpc]
+NodeUrl = "http://127.0.0.1:5871"
+Gid = "f83162f70c1803f4858bedb545508c68e1611cbbbf03bcfdf295d09c8ec981a98d689dc5551d01e539e290a58b50f9d4cd039243d581113530b78a3afedefb1f"
+Accounts = ["0xfb6e712F4f71D418A298EBe239889A2496f1359b","0x380dF538Ab2587B11466d07ca5c671d33497d5Ca","0x5e80cf0C104D2D4f685A15deb65A319e95dd80dD","0xeBbe638eF6dF4A3837435bB44527f8D9BA9CF981"]
+ThresHold = "4/6"
+KeyStore = "./config/smpc_k"
+
+# The Server config
+# DetectCount is the detect count when it request a sign to accept. The DetectTime is the time as seconds between two detect loops.
+# AcceptTime is the check time as seconds with one loop.
+# AcceptOverTime is the time as seconds. If smpc sign over this time, it should be not accepted.
+[Server]
+DetectCount = 120
+DetectTime = 10
+AcceptTime = 30
+AcceptOverTime = 1200
+
+# database driver is mysql 46768bacc61d97fe9d459fcb01181dcb6fae36f9
+# the dabasebase name is "smpc" and the table to see the "readme"
+[Db]
+Host = "127.0.0.1"
+Port = "3306"
+DbName = "smpc"
+Usr= "root"
+Pwd= "851012"
+
+[TxErrorRecord]
+NodeRpc = "https://json-rpc.evm.shimmer.network"
+NodeWss = "wss://ws.json-rpc.evm.shimmer.network"
+Contract = "0xA3Ad4739141892a9D25C763e620210E06298c2D4"
+ScanEventType = 0
+TimePeriod = 3600
+
+# Tokens contain "IOTA", "ETH", WBTC", "sIOTA", "sETH", "sBTC"
+# Symbol is the unique
+# ScanEventType, 0: listen event as websockt or mqtt; 1: scan block to get event logs.
+# MultiSignType, 0 is contract multiSign, 2 is smpc multiSign
+# MultiSignType = 0: PublicKey is null
+# MultiSignType = 2: Contract and KeyStore is null
+[[Tokens]]
+Symbol = "IOTA"
+NodeRpc = "https://api.stardust-mainnet.iotaledger.net"
+NodeWss = "https://api.stardust-mainnet.iotaledger.net"
+ScanEventType = 0
+MultiSignType = 2
+# iota1qr3jf395mx0frslvndkzkhwe63gvwwqynh7997xm46h2lk6gv78dg5n27nc
+PublicKey = "1bcd460eb168c5de3183eca59c9b960f8083fdd703aec23df6a2815bffac0254"
+MinAmount = 1
+
+[[Tokens]]
+Symbol = "ETH"
+NodeRpc = "https://mainnet.infura.io/v3/3f8b4373a4a943bf8b9c635fba90ee78"
+NodeWss = "wss://mainnet.infura.io/ws/v3/3f8b4373a4a943bf8b9c635fba90ee78"
+ScanEventType = 0
+ScanMaxHeight = 10000
+MultiSignType = 0
+Contract = "0x7C32097EB6bA75Dc5eF370BEC9019FD09D96ab9d"
+MinAmount = 1
+KeyStore = "./config/smpc_k"
+GasPriceUpper = 40
+
+[[Tokens]]
+Symbol = "WBTC"
+NodeRpc = "https://mainnet.infura.io/v3/3f8b4373a4a943bf8b9c635fba90ee78"
+NodeWss = "wss://mainnet.infura.io/ws/v3/3f8b4373a4a943bf8b9c635fba90ee78"
+ScanEventType = 0
+ScanMaxHeight = 10000
+MultiSignType = 0
+Contract = "0x6c2F73072bD9bc9052D99983e36411f48fa6cDf0"
+MinAmount = 1
+KeyStore = "./config/smpc_k"
+GasPriceUpper = 40
+
+[[Tokens]]
+Symbol = "sIOTA"
+NodeRpc = "https://json-rpc.evm.shimmer.network"
+NodeWss = "wss://ws.json-rpc.evm.shimmer.network"
+ScanEventType = 0
+ScanMaxHeight = 1000
+MultiSignType = 0
+Contract = "0x5dA63f4456A56a0c5Cb0B2104a3610D5CA3d48E8"
+MinAmount = 1
+KeyStore = "./config/smpc_k"
+GasPriceUpper = 0
+
+[[Tokens]]
+Symbol = "sETH"
+NodeRpc = "https://json-rpc.evm.shimmer.network"
+NodeWss = "wss://ws.json-rpc.evm.shimmer.network"
+ScanEventType = 0
+ScanMaxHeight = 1000
+MultiSignType = 0
+Contract = "0xa158A39d00C79019A01A6E86c56E96C461334Eb0"
+MinAmount = 1
+KeyStore = "./config/smpc_k"
+GasPriceUpper = 0
+
+[[Tokens]]
+Symbol = "sBTC"
+NodeRpc = "https://json-rpc.evm.shimmer.network"
+NodeWss = "wss://ws.json-rpc.evm.shimmer.network"
+ScanEventType = 0
+ScanMaxHeight = 1000
+MultiSignType = 0
+Contract = "0x1cDF3F46DbF8Cf099D218cF96A769cea82F75316"
+MinAmount = 1
+KeyStore = "./config/smpc_k"
+GasPriceUpper = 0
+
+# Pairs is the bridge pair. 
+# SrcToken to DestToken. They must be in the "Tokens".
+[[Pairs]]
+SrcToken = "IOTA"
+DestToken = "sIOTA"
+
+[[Pairs]]
+SrcToken = "ETH"
+DestToken = "sETH"
+
+[[Pairs]]
+SrcToken = "WBTC"
+DestToken = "sBTC"
